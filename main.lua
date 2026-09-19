@@ -282,11 +282,15 @@ function KindlePin:showPins()
         })
         return
     end
-    UIManager:show(PinDialog:new{
-        pins = pins,
-        index = 1,
-        plugin = self,
-    })
+    -- Defer until after the triggering gesture/menu refresh, otherwise the
+    -- reader can repaint through the viewer on e-ink.
+    UIManager:nextTick(function()
+        UIManager:show(PinDialog:new{
+            pins = pins,
+            index = 1,
+            plugin = self,
+        })
+    end)
 end
 
 function KindlePin:onKindlePinShow()

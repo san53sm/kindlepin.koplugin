@@ -11,7 +11,6 @@ local GestureRange = require("ui/gesturerange")
 local FocusManager = require("ui/widget/focusmanager")
 local ImageWidget = require("ui/widget/imagewidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
-local MovableContainer = require("ui/widget/container/movablecontainer")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
 local TitleBar = require("ui/widget/titlebar")
@@ -48,6 +47,8 @@ local function formatWhen(ts)
 end
 
 function PinDialog:init()
+    -- Fullscreen page: gestures otherwise refresh the book through a floating dialog.
+    self.covers_fullscreen = true
     self.align = "center"
     self.pins = self.pins or {}
     self.index = self.index or 1
@@ -72,9 +73,6 @@ function PinDialog:init()
             h = Screen:getHeight(),
         }
         self.ges_events = {
-            TapClose = {
-                GestureRange:new{ ges = "tap", range = range },
-            },
             SwipeNav = {
                 GestureRange:new{ ges = "swipe", range = range },
             },
@@ -104,8 +102,13 @@ function PinDialog:buildLayout()
     local pin = self:currentPin()
     local screen_w = Screen:getWidth()
     local screen_h = Screen:getHeight()
-    self.width = screen_w - Screen:scaleBySize(30)
-    self.height = screen_h - Screen:scaleBySize(30)
+    self.width = screen_w
+    self.height = screen_h
+    self.dimen = Geom:new{
+        x = 0, y = 0,
+        w = screen_w,
+        h = screen_h,
+    }
 
     local total = #self.pins
     local title = T(_("Закрепление %1 из %2"), self.index, total)
@@ -235,19 +238,16 @@ function PinDialog:buildLayout()
     }
 
     self.dialog_frame = FrameContainer:new{
-        radius = Size.radius.window,
+        radius = 0,
+        bordersize = 0,
         padding = 0,
         margin = 0,
         background = Blitbuffer.COLOR_WHITE,
+        width = screen_w,
+        height = screen_h,
         dialog_inner,
     }
-    self.movable = MovableContainer:new{
-        self.dialog_frame,
-    }
-    self[1] = CenterContainer:new{
-        dimen = Geom:new{ w = screen_w, h = screen_h },
-        self.movable,
-    }
+    self[1] = self.dialog_frame
 
     if self.button_table.layout then
         self.layout = self.button_table.layout
@@ -315,12 +315,8 @@ function PinDialog:buildImageContent(pin, width, height)
 end
 
 function PinDialog:rebuild()
-    local old_dimen = self.movable and self.movable.dimen
     self:buildLayout()
-    UIManager:setDirty(self, function()
-        local dimen = self.movable and self.movable.dimen or old_dimen
-        return "ui", dimen
-    end)
+    UIManager:setDirty(self, "ui")
 end
 
 function PinDialog:showAt(index)
@@ -380,14 +376,9 @@ function PinDialog:onSwipeNav(_, ges)
     return false
 end
 
-function PinDialog:onTapClose(_, ges)
-    if self.dialog_frame and self.dialog_frame.dimen
-        and ges.pos:notIntersectWith(self.dialog_frame.dimen)
-    then
-        self:onClose()
-        return true
-    end
-    return false
+function PinDialog:onShow()
+    UIManager:setDirty(self, "full")
+    return true
 end
 
 function PinDialog:openFullscreen()
@@ -451,8 +442,12 @@ end
 
 function PinDialog:onClose()
     UIManager:close(self)
-    self:freeContent()
     return true
+end
+
+function PinDialog:onCloseWidget()
+    self:freeContent()
+    UIManager:setDirty(nil, "full")
 end
 
 return PinDialog
