@@ -11,6 +11,7 @@ local GestureRange = require("ui/gesturerange")
 local FocusManager = require("ui/widget/focusmanager")
 local ImageWidget = require("ui/widget/imagewidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
+local PinText = require("pintext")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
 local TitleBar = require("ui/widget/titlebar")
@@ -18,6 +19,7 @@ local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local lfs = require("libs/libkoreader-lfs")
+local logger = require("logger")
 local _ = require("gettext")
 local T = require("ffi/util").template
 local Screen = Device.screen
@@ -266,6 +268,26 @@ function PinDialog:buildLayout()
 end
 
 function PinDialog:buildTextContent(pin, width, height)
+    if pin and type(pin.html) == "string" and pin.html ~= "" then
+        -- Older KOReader builds may lack this widget. Keep plain text usable.
+        local ok, widget = pcall(function()
+            local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
+            return ScrollHtmlWidget:new{
+                html_body = pin.html,
+                css = PinText.stylesheet(pin),
+                is_xhtml = true, -- FB2 title/poem/etc. must be parsed as XML.
+                default_font_size = Font:getFace("x_smallinfofont").size,
+                width = width,
+                height = height,
+                dialog = self,
+            }
+        end)
+        if ok then
+            self._scroll_wg = widget
+            return widget
+        end
+        logger.warn("kindlepin: HTML rendering failed, using plain text", widget)
+    end
     local text = (pin and pin.text) or _("(пусто)")
     self._scroll_wg = ScrollTextWidget:new{
         text = text,
@@ -346,16 +368,16 @@ function PinDialog:onShowNext()
 end
 
 function PinDialog:onScrollUp()
-    if self._scroll_wg and self._scroll_wg.scrollUp then
-        self._scroll_wg:scrollUp()
+    if self._scroll_wg and self._scroll_wg.onScrollUp then
+        self._scroll_wg:onScrollUp()
         return true
     end
     return self:onShowPrev()
 end
 
 function PinDialog:onScrollDown()
-    if self._scroll_wg and self._scroll_wg.scrollDown then
-        self._scroll_wg:scrollDown()
+    if self._scroll_wg and self._scroll_wg.onScrollDown then
+        self._scroll_wg:onScrollDown()
         return true
     end
     return self:onShowNext()

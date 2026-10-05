@@ -13,6 +13,7 @@ local InfoMessage = require("ui/widget/infomessage")
 local Notification = require("ui/widget/notification")
 local PinDialog = require("pindialog")
 local PinStore = require("pinstore")
+local PinText = require("pintext")
 local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
@@ -192,6 +193,11 @@ function KindlePin:pinFromHighlight(reader_highlight)
         pboxes = selected.pboxes,
         sboxes = selected.sboxes,
     }
+    local formatted = PinText.capture(self.ui.document, selected)
+    if formatted then
+        pin.html = formatted.html
+        pin.css = formatted.css
+    end
     self.store:add(self:docPath(), pin)
     UIManager:show(Notification:new{
         text = _("Закреплено"),
