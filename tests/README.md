@@ -1,12 +1,21 @@
-# Проверки
+# Tests
 
-Из корня плагина: `lua tests/run.lua` или `luajit tests/run.lua`.
+From the plugin directory, run `lua tests/run.lua` or `luajit tests/run.lua`.
 
-Тесты используют Lua 5.1 и подменяют сервисы KOReader, поэтому отдельная установка
-KOReader не требуется. Они проверяют передачу границ выделения в HTML API,
-сохранение разметки и CSS, совместимость старых закреплений, резервный обычный текст
-и вызовы API просмотра. Проверяются также направление и порядок связей, циклы,
-удаление из правильной книги при совпадающих ID, переход в другой ReaderUI,
-работа с недоступными файлами и настройки связей. Это проверки логики плагина, а не рендеринга CRe/MuPDF:
-визуальный результат и реальные выделения EPUB/FB2 нужно дополнительно проверить
-в KOReader на устройстве.
+The suite uses Lua 5.1 with test doubles for KOReader services, so a separate
+KOReader installation is not required. It covers:
+
+- Selection boundaries passed to the HTML API, saved markup and CSS, legacy pins,
+  plain-text fallback and viewer API calls.
+- Link direction and order, cycles, deletion from the correct source when IDs
+  collide, navigation through another ReaderUI, unavailable files and link settings.
+- Current reader fonts and style variants, fallback fonts and typography overrides.
+- Viewer settings, popup geometry and painting, deferred opening, modal input,
+  outside-tap dismissal, image preview, fullscreen expansion and snapshot cleanup.
+- KOReader language preference, active/system locale detection, English fallback,
+  complete Russian UI translations, placeholders and localized metadata/menus.
+
+These tests verify plugin logic rather than CRe/MuPDF rendering. Check real EPUB/FB2
+selections and visual output in KOReader on a device. For languages, restart with
+Russian, English and an unsupported interface language, then check the selection
+and image buttons, gesture actions, both viewers, settings and deletion confirmations.

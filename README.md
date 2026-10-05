@@ -1,124 +1,146 @@
-# Pin для KOReader
+[Русский](README.ru.md)
 
-Аналог закрепления фрагментов (Pin) с Kindle: сохраняет выделенный текст и изображения и показывает их без перехода к исходной странице книги. По умолчанию используется отдельная полноэкранная страница; в настройках можно включить компактную панель в правом нижнем углу поверх страницы книги.
+# Pin for KOReader
 
-## Возможности
+Kindle-style pins for selected text and images. Save passages and browse them without
+returning to their original page. The default viewer is fullscreen; an optional compact
+panel appears in the bottom-right corner over the book page.
 
-1. Закрепление выделенного текста из меню выделения.
-2. Закрепление изображения из встроенного просмотрщика (долгое нажатие по картинке в книге → **Закрепить**).
-3. Просмотр закреплений от нового к старому: полноэкранный или компактный, как на Kindle.
-4. Прокрутка длинного текста внутри окна.
-5. Масштаб и полноэкранный просмотр закреплённых изображений.
-6. Переход к фрагменту в книге только по кнопке **К фрагменту**.
-7. Удаление одного закрепления или всех сразу.
-8. Сохранение HTML-разметки и стилей новых текстовых закреплений EPUB и FB2:
-   абзацы, отступы, курсив, жирный шрифт, цитаты и стихотворения.
-9. Односторонние связи с закреплениями других книг, в том числе предыдущих томов.
+## Features
 
-## Установка
+1. Pin selected text from the selection menu.
+2. Pin images from KOReader's image viewer (long-press an image in the book → **Pin**).
+3. Browse pins from newest to oldest in fullscreen or in a compact Kindle-style panel.
+4. Scroll long text within the viewer.
+5. Open pinned images fullscreen and zoom them.
+6. Return to the original passage with **Go to passage**.
+7. Delete individual pins or all pins in the current book.
+8. Preserve HTML markup and styles in new EPUB and FB2 text pins: paragraphs,
+   indentation, italics, bold text, quotations and poetry.
+9. Add one-way links to pins from other books, including previous volumes.
+10. Use the current book's font and text size in both viewing modes.
+11. Automatically display the plugin interface in English or Russian.
 
-1. Скопируйте папку `kindlepin.koplugin` в каталог плагинов KOReader:
-   - Kindle / Kobo / PocketBook: `koreader/plugins/kindlepin.koplugin/`
-2. Перезапустите KOReader.
-3. Включите плагин: **Меню → Значок шестерёнки → Больше инструментов → Управление плагинами → Pin**.
+## Installation
 
-## Использование
+1. Copy the `kindlepin.koplugin` folder into KOReader's plugins directory:
+   `koreader/plugins/kindlepin.koplugin/` on Kindle, Kobo and PocketBook.
+2. Restart KOReader.
+3. Enable **Pin** in KOReader's plugin management menu under **More tools**.
 
-- **Текст:** выделите фрагмент → в меню выделения **Закрепить**.
-- **Картинка:** удерживайте изображение → в просмотрщике **Закрепить**.
-- **Просмотр:** **Меню → Инструменты → Закрепления → Просмотреть закрепления**.
-  Листайте кнопками «Пред.» / «След.» или свайпом влево/вправо.
-- **Жесты:** в настройках жестов доступны действия «Показать закрепления» и «Закрепить выделение».
+## Usage
 
-Данные хранятся в `koreader/settings/kindlepin.lua`, картинки — в `koreader/settings/kindlepin_media/`,
-связи между книгами — в `koreader/settings/kindlepin_links.lua`. Закрепления и связи привязаны к пути файла книги.
-Выбор режима просмотра хранится в `koreader/settings/kindlepin_options.lua` и действует для всех книг.
+- **Text:** select a passage and tap **Pin** in the selection menu.
+- **Image:** long-press an image and tap **Pin** in the image viewer.
+- **Browse:** **Menu → Tools → Pins → View pins**.
+  Use **Prev.** / **Next** or swipe left/right to switch between pins.
+- **Gestures:** the gesture settings offer **Show pins** and **Pin selection** actions.
 
-## Компактный просмотр
+Pins are stored in `koreader/settings/kindlepin.lua`, images in
+`koreader/settings/kindlepin_media/`, and book links in
+`koreader/settings/kindlepin_links.lua`. Pins and links are associated with the book's
+file path. The viewer mode is stored in `koreader/settings/kindlepin_options.lua`
+and applies to all books.
 
-Включение: **Меню → Инструменты → Закрепления → Вид просмотра → Всплывающий в правом нижнем углу**.
-Для возврата к прежнему виду выберите **Полноэкранный**. При первой установке и обновлении
-без сохранённой настройки выбран полноэкранный режим. Просмотр открывается тем же пунктом
-меню или действием жеста **Показать закрепления**.
+## Interface language
 
-Панель имеет непрозрачный белый фон, тонкую рамку и отступы от правого и нижнего краёв.
-В портретной ориентации занимает примерно две трети высоты и 65% ширины экрана;
-в альбомной высота составляет 78%, чтобы оставить место содержимому и кнопкам.
-Вверху расположены меню **⋮** и кнопка закрытия **×**, внизу — стрелки **‹ / ›**, номер
-закрепления, страница и название файла книги-источника. За границами панели виден снимок
-страницы книги. Пока просмотр открыт, управлять книгой нельзя. Одиночный тап вне
-панели закрывает её и поглощается: книга от этого нажатия не перелистывается.
-Другие жесты вне панели перехватываются без управления книгой.
+The plugin follows KOReader's interface language: Russian for Russian, English for
+English and all other languages. If no language is explicitly selected in KOReader,
+the plugin uses the system locale available to KOReader. English is the fallback when
+the language cannot be detected. No separate plugin language setting is needed.
+Restart KOReader after changing its language, as requested by KOReader itself.
+The interface language does not change saved passages, book filenames or file paths.
 
-- Переключение закреплений: нижние стрелки или горизонтальный свайп внутри панели.
-- Прокрутка текста: вертикальный свайп внутри текста или кнопки страниц.
-  На кнопочных устройствах меню, закрытие и стрелки доступны через D-pad.
-- Картинка открывается в штатном полноэкранном просмотрщике по касанию;
-  после его закрытия снова видна компактная панель.
-- Меню **⋮** содержит **К фрагменту**, **На весь экран**, **Сведения** и **Удалить**.
-  Разворачивание текста сохраняет выбранное закрепление и не меняет настройку режима;
-  после закрытия следующего просмотра снова используется компактный режим.
-  **Сведения** показывает полный путь источника, страницу и дату сохранения.
+## Compact viewer
 
-Открытие отложено до завершения перерисовки, вызванной жестом или меню. Панель сама
-восстанавливает снимок фона и рисует поверх него непрозрачное содержимое, чтобы
-текст книги не просвечивал через закрепление при последующих перерисовках.
-При повороте экрана компактное окно закрывается; откройте его заново в новой ориентации.
-Если снимок экрана не удаётся создать или панель не помещается, используется
-полноэкранный просмотр. На реальном Kindle этот режим ещё требует визуальной проверки.
+Enable **Menu → Tools → Pins → Viewer mode → Popup in the bottom-right corner**.
+Choose **Fullscreen** to return to the default viewer. Fullscreen remains the default
+on a fresh installation or an upgrade without a saved mode setting. Both modes open
+through the same menu entry or the **Show pins** gesture action.
 
-## Форматирование текста
+The panel has an opaque white background, a thin border, and margins from the right
+and bottom edges. In portrait orientation it occupies approximately two thirds of the
+screen height and 65% of its width. In landscape orientation it uses 78% of the height
+to leave room for content and controls. The **⋮** menu and **×** close button are at
+the top; **‹ / ›** arrows, the pin number, page and source filename are at the bottom.
+A snapshot of the book page remains visible outside the panel. Book controls are
+blocked while the viewer is open. A single tap outside the panel closes it and is
+consumed, so it does not turn a book page. Other gestures outside the panel are consumed.
 
-Для EPUB и FB2 используется разметка выделенного фрагмента из движка KOReader,
-включая родительские элементы и доступные таблицы стилей книги. Разметка и CSS
-сохраняются вместе с закреплением, поэтому просмотр не требует повторного открытия книги.
-Специальные элементы FB2 (курсив, эпиграфы, стихотворения и др.) поддерживаются
-отдельными стилями. Длинный текст листается вертикальными свайпами и кнопками страниц;
-на устройствах с клавиатурой Shift/ScreenKB + кнопка страницы переключает закрепления.
+- Switch pins with the bottom arrows or a horizontal swipe inside the panel.
+- Scroll text with vertical swipes within the text area or page buttons.
+  On devices with buttons, the menu, close button and arrows support D-pad navigation.
+- Tap an image to open KOReader's fullscreen image viewer with zoom controls.
+  Closing it returns to the compact panel.
+- The **⋮** menu offers **Go to passage**, **Open fullscreen**, **Details** and **Delete**.
+  Expanding a text pin keeps the selected pin without changing the saved viewer mode;
+  the next viewing session uses compact mode again. **Details** shows the full source
+  path, page and date the pin was saved.
 
-Шрифт и размер текста берутся из текущей открытой книги при каждом просмотре.
-Это работает в обоих режимах, для старых текстовых закреплений и для фрагментов
-связанных книг: заново сохранять их не нужно. Встроенные настройки шрифта фрагмента
-переопределяются только для отображения; курсив, жирный текст и отступы сохраняются.
-Используются доступные файлы выбранного шрифта и его начертаний; отсутствующие
-начертания синтезируются MuPDF. Если шрифт получить нельзя, используется запасной.
-Для HTML выбор нестандартного лица внутри TTC-коллекции (индекс не 0) пока недоступен.
+Opening waits for the redraw triggered by a gesture or menu to finish. The panel
+restores the background snapshot and paints opaque content over it so that book text
+does not show through the pin on later redraws. The snapshot stays in memory for the
+viewing session and is freed on close; it is not written to storage.
+Rotating the screen closes the compact viewer; reopen it in the new orientation.
+If a snapshot cannot be captured or the panel does not fit, the plugin uses fullscreen.
+The compact layout still needs visual verification on a physical Kindle.
 
-Старые закрепления остаются читаемыми как обычный текст; для сохранения их
-форматирования выделите и закрепите фрагмент заново. Если HTML API недоступен
-(например, для PDF) или разметка не отображается, используется сохранённый обычный текст.
-Просмотрщик использует MuPDF, поэтому контраст, тонкие настройки толщины/сглаживания
-CRe, сложные CSS-эффекты и встроенные в текст ресурсы книги не гарантируют точного
-совпадения с оригинальной страницей.
+## Text formatting
 
-## Связанные книги
+For EPUB and FB2, the plugin captures the selected passage's markup from KOReader's
+document engine, including ancestor elements and available book stylesheets. Markup
+and CSS are saved with the pin, so viewing it does not require reopening the source book.
+Additional styles support FB2 elements such as emphasis, epigraphs and poetry.
+Scroll long text using vertical swipes or page buttons. On devices with a keyboard,
+Shift/ScreenKB + a page button switches between pins.
 
-Откройте книгу, из которой хотите видеть закрепления другого тома, затем:
-**Меню → Инструменты → Закрепления → Связанные книги → Добавить книгу с закреплениями**.
-В списке будут книги, в которых этот плагин уже сохранил закрепления. Можно также
-выбрать **Выбрать файл книги…** и удержать нужный файл; связь разрешено добавить
-ещё до появления закреплений в исходной книге. На устройствах без сенсорного экрана
-файл выбирается обычной кнопкой выбора.
+The current open book supplies the font and text size each time the viewer opens.
+This works in both modes, for older text pins and pins from linked books; they do not
+need to be saved again. Font declarations in the saved passage are overridden for
+display, while italics, bold text and indentation remain. Available files for the
+selected font and its styles are used; MuPDF synthesizes missing styles. If the font
+cannot be obtained, a fallback is used. Selecting a non-default face inside a TTC font
+collection (an index other than 0) is currently unsupported for HTML pins.
 
-Например, добавив том 1 в настройках тома 2, вы увидите в томе 2 закрепления обоих
-томов. В томе 1 закрепления тома 2 не появятся. Для обратного просмотра добавьте
-отдельную связь в томе 1. Связи **не транзитивны**: если том 3 связан с томом 2,
-а том 2 с томом 1, для просмотра тома 1 из тома 3 добавьте его явно.
+Older pins remain readable as plain text. To preserve their original formatting,
+select and pin the passage again. If the HTML API is unavailable (for example, for PDF)
+or markup cannot be displayed, the saved plain text is used. The viewer uses MuPDF,
+so contrast, CRe weight/antialiasing settings, complex CSS effects and book resources
+embedded in the text may differ from the original page.
 
-Порядок просмотра: сначала закрепления текущей книги от новых к старым, затем
-закрепления связанных книг в порядке добавления связей, внутри каждой — от новых
-к старым. Название файла источника показывается под заголовком закрепления.
-Новые закрепления исходной книги появляются при следующем открытии просмотра.
+## Linked books
 
-- **К фрагменту** открывает исходную книгу и переходит к сохранённой позиции.
-- **Удалить** удаляет закрепление из исходной книги; для связанного фрагмента
-  подтверждение показывает путь и сообщает о последствиях.
-- **Удалить все закрепления книги** затрагивает только текущую книгу.
-- **Связанные книги → нужная книга → Убрать связь** скрывает её закрепления,
-  сохраняя сами данные. Порядок связей можно изменить удалением и повторным добавлением.
+Open the book where you want to see another volume's pins, then choose
+**Menu → Tools → Pins → Linked books → Add a book with pins**. The list contains books
+with pins already saved by this plugin. Alternatively, choose **Choose a book file…**
+and long-press the desired file; you can add a link before the source book has any pins.
+On devices without a touchscreen, select the file with the normal selection button.
 
-Если файл исходной книги перемещён или удалён, сохранённый текст и отдельно
-сохранённые картинки остаются доступны, но переход к фрагменту не сработает.
-После перемещения файла закрепления и связи автоматически к новому пути не переносятся.
-Для резервной копии сохраняйте `kindlepin.lua`, `kindlepin_links.lua`,
-`kindlepin_options.lua` и каталог `kindlepin_media/`.
+For example, linking volume 1 from volume 2 makes both volumes' pins visible in
+volume 2. Volume 1 does not gain access to volume 2's pins. Add a separate link in
+volume 1 for the reverse direction. Links are **not transitive**: if volume 3 links to
+volume 2 and volume 2 links to volume 1, explicitly link volume 1 from volume 3 to see it.
+
+The viewing order is: current book's pins from newest to oldest, then linked books in
+the order their links were added, with each book's pins from newest to oldest.
+The source filename is displayed with the pin's metadata. New source pins appear
+the next time the viewer is opened.
+
+- **Go to passage** opens the source book and jumps to the saved position.
+- **Delete** removes the pin from its source book. For linked pins, the confirmation
+  shows the source path and explains that the pin will disappear there too.
+- **Delete all pins in this book** affects only the current book.
+- **Linked books → desired book → Remove link** hides that book's pins while retaining
+  the saved data. Change link order by removing and adding links again.
+
+If a source book is moved or deleted, saved text and separately saved images remain
+available, but jumping to the passage will fail. Pins and links do not automatically
+follow a moved book to its new path. For backups, keep `kindlepin.lua`,
+`kindlepin_links.lua`, `kindlepin_options.lua` and the `kindlepin_media/` directory.
+
+## Development
+
+Run `lua tests/run.lua` or `luajit tests/run.lua` from the plugin directory.
+See [tests/README.md](tests/README.md) for coverage and device verification notes.
+Plugin UI strings use English message keys; their Russian translations and language
+detection are maintained in `pinlocale.lua`.
