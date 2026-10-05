@@ -199,11 +199,18 @@ function PinDialog:buildLayout()
         show_parent = self,
     }
 
+    local content_padding = Size.padding.large
+    local button_gap = Size.padding.small
+    local bottom_padding = Size.padding.large
+    -- Account for both sides of the content frame and the footer spacing.
+    -- FrameContainer's fixed height does not clip an oversized child group.
     local content_h = self.height
         - self.title_bar:getHeight()
         - self.button_table:getSize().h
-        - Size.padding.large
-    local content_w = self.width - 2 * Size.padding.large
+        - 2 * content_padding
+        - button_gap
+        - bottom_padding
+    local content_w = self.width - 2 * content_padding
 
     local content_widget
     if is_image then
@@ -213,7 +220,7 @@ function PinDialog:buildLayout()
     end
 
     local content_frame = FrameContainer:new{
-        padding = Size.padding.large,
+        padding = content_padding,
         margin = 0,
         bordersize = 0,
         background = Blitbuffer.COLOR_WHITE,
@@ -227,7 +234,7 @@ function PinDialog:buildLayout()
         align = "left",
         self.title_bar,
         content_frame,
-        VerticalSpan:new{ width = Size.padding.small },
+        VerticalSpan:new{ width = button_gap },
         CenterContainer:new{
             dimen = Geom:new{
                 w = self.width,
@@ -235,6 +242,7 @@ function PinDialog:buildLayout()
             },
             self.button_table,
         },
+        VerticalSpan:new{ width = bottom_padding },
     }
 
     self.dialog_frame = FrameContainer:new{
