@@ -345,7 +345,7 @@ function PinDialog:buildPopupLayout(pin, screen_w, screen_h)
         }
     end
     local menu_button = control("⋮", function() self:showActions() end)
-    local close_button = control("∨", function() self:onClose() end)
+    local close_button = control("×", function() self:onClose() end)
     local header = HorizontalGroup:new{
         menu_button,
         HorizontalSpan:new{ width = inner_w - 2 * control_w },
