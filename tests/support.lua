@@ -69,7 +69,11 @@ Support.stub("device", { screen = { width = 600, height = 800,
     getHeight = function(self) return self.height end,
     scaleBySize = function(_, size) return size end,
 }, hasKeys = function() return false end, isTouchDevice = function() return true end })
-Support.stub("ui/font", { getFace = function(_, _, size) return { size = size or 20 } end })
+Support.stub("ui/font", { getFace = function(_, name, size, index)
+    size = size or 20
+    return { size = package.loaded.device.screen:scaleBySize(size), orig_size = size,
+        orig_font = name, faceindex = index or 0 }
+end })
 Support.stub("ui/uimanager", {
     show = function(_, widget) Support.shown[#Support.shown + 1] = widget end,
     close = function(_, widget)
@@ -87,7 +91,7 @@ Support.stub("ui/uimanager", {
 })
 Support.stub("libs/libkoreader-lfs", { attributes = function(path, attribute)
     if attribute == "mode" then return Support.files[path] end
-end })
+end, currentdir = function() return "/koreader" end })
 Support.stub("datastorage", { getSettingsDir = function() return "/test/settings" end })
 Support.stub("document/documentregistry", { hasProvider = function(_, path)
     return path:match("%.epub$") or path:match("%.fb2$") or path:match("%.pdf$")

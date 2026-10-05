@@ -16,6 +16,7 @@ local HorizontalSpan = require("ui/widget/horizontalspan")
 local ImageWidget = require("ui/widget/imagewidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local LineWidget = require("ui/widget/linewidget")
+local PinFont = require("pinfont")
 local PinText = require("pintext")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
@@ -474,15 +475,17 @@ function PinDialog:onScreenResize()
 end
 
 function PinDialog:buildTextContent(pin, width, height)
+    local typography = PinFont.forReader(self.plugin and self.plugin.ui)
     if pin and type(pin.html) == "string" and pin.html ~= "" then
         -- Older KOReader builds may lack this widget. Keep plain text usable.
         local ok, widget = pcall(function()
             local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
             return ScrollHtmlWidget:new{
-                html_body = pin.html,
-                css = PinText.stylesheet(pin),
+                html_body = PinFont.styleHTML(pin.html, typography),
+                css = PinText.stylesheet(pin) .. "\n" .. (typography.css or ""),
                 is_xhtml = true, -- FB2 title/poem/etc. must be parsed as XML.
-                default_font_size = Font:getFace("x_smallinfofont").size,
+                default_font_size = typography.size,
+                html_resource_directory = typography.resource_directory,
                 width = width,
                 height = height,
                 dialog = self,
@@ -497,7 +500,7 @@ function PinDialog:buildTextContent(pin, width, height)
     local text = (pin and pin.text) or _("(пусто)")
     self._scroll_wg = ScrollTextWidget:new{
         text = text,
-        face = Font:getFace("x_smallinfofont"),
+        face = typography.face,
         width = width,
         height = height,
         dialog = self,

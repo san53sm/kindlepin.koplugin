@@ -351,5 +351,6 @@ test("file chooser accepts supported books, rejects self, and links an empty sou
     assert(store:countVisible("/books/current.epub") == 1)
 end)
 
+require("fonts")(test, contains)
 require("popup")(test, contains)
 print(string.format("%d tests passed", passed))
