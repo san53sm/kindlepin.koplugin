@@ -59,6 +59,9 @@ Support.stub("libs/libkoreader-lfs", { attributes = function(path, attribute)
     if attribute == "mode" then return Support.files[path] end
 end })
 Support.stub("datastorage", { getSettingsDir = function() return "/test/settings" end })
+Support.stub("document/documentregistry", { hasProvider = function(_, path)
+    return path:match("%.epub$") or path:match("%.fb2$") or path:match("%.pdf$")
+end })
 Support.stub("luasettings", { open = function(_, path)
     if not Support.settings_files[path] then Support.settings_files[path] = {} end
     return {

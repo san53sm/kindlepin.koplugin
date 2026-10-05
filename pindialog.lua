@@ -116,6 +116,9 @@ function PinDialog:buildLayout()
     local title = T(_("Закрепление %1 из %2"), self.index, total)
     local subtitle_parts = {}
     if pin then
+        if pin.doc_path and self.plugin then
+            subtitle_parts[#subtitle_parts + 1] = self.plugin:bookName(pin.doc_path)
+        end
         if pin.type == "image" then
             subtitle_parts[#subtitle_parts + 1] = _("изображение")
         else
@@ -444,8 +447,12 @@ function PinDialog:confirmDelete()
     if not pin then
         return
     end
+    local text = _("Удалить это закрепление?")
+    if self.plugin and pin.doc_path and pin.doc_path ~= self.plugin:docPath() then
+        text = T(_("Удалить это закрепление из связанной книги?\n%1\n\nОно исчезнет и при просмотре исходной книги."), pin.doc_path)
+    end
     UIManager:show(ConfirmBox:new{
-        text = _("Удалить это закрепление?"),
+        text = text,
         ok_text = _("Удалить"),
         ok_callback = function()
             self:deleteCurrent()
@@ -458,7 +465,7 @@ function PinDialog:deleteCurrent()
     if not pin or not self.plugin then
         return
     end
-    self.plugin:deletePin(pin.id)
+    self.plugin:deletePin(pin)
     self.pins = self.plugin:listPins()
     if #self.pins == 0 then
         self:onClose()

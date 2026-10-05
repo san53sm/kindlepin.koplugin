@@ -18,6 +18,7 @@ local UIManager = require("ui/uimanager")
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
 local util = require("util")
+local lfs = require("libs/libkoreader-lfs")
 local _ = require("gettext")
 local T = require("ffi/util").template
 
@@ -122,7 +123,91 @@ function KindlePin:docPath()
 end
 
 function KindlePin:listPins()
-    return self.store:listNewestFirst(self:docPath())
+    return self.store:listForViewer(self:docPath())
+end
+
+function KindlePin:bookName(path)
+    return path and path:match("([^/]+)$") or _("Неизвестная книга")
+end
+
+function KindlePin:linkBook(path)
+    if self.store:addLink(self:docPath(), path) then
+        UIManager:show(Notification:new{
+            text = T(_("Связаны закрепления: %1"), self:bookName(path)),
+        })
+    end
+end
+
+function KindlePin:chooseLinkedBook()
+    local PathChooser = require("ui/widget/pathchooser")
+    local DocumentRegistry = require("document/documentregistry")
+    UIManager:show(PathChooser:new{
+        title = _("Удерживайте файл книги для добавления связи"),
+        path = self:docPath():match("^(.*)/") or ".",
+        select_directory = false,
+        select_file = true,
+        file_filter = function(path)
+            return DocumentRegistry:hasProvider(path)
+        end,
+        onConfirm = function(path)
+            if path == self:docPath() then
+                UIManager:show(InfoMessage:new{ text = _("Книгу нельзя связать с самой собой.") })
+                return
+            end
+            self:linkBook(path)
+        end,
+    })
+end
+
+function KindlePin:linkCandidates()
+    local excluded = { [self:docPath()] = true }
+    for _, path in ipairs(self.store:getLinkedBooks(self:docPath())) do excluded[path] = true end
+    local items = {}
+    for i, path in ipairs(self.store:listBooksWithPins()) do
+        if not excluded[path] then
+            local source_path = path
+            items[#items + 1] = {
+                text = T(_("%1 (%2)"), self:bookName(path), self.store:count(path)),
+                help_text = path,
+                callback = function() self:linkBook(source_path) end,
+            }
+        end
+    end
+    if #items == 0 then
+        items[1] = { text = _("Нет других книг с закреплениями"), enabled = false }
+    end
+    return items
+end
+
+function KindlePin:linkedBooksMenu()
+    local items = {
+        { text = _("Связи действуют только из этой книги"), enabled = false },
+        {
+            text = _("Добавить книгу с закреплениями"),
+            sub_item_table_func = function() return self:linkCandidates() end,
+        },
+        {
+            text = _("Выбрать файл книги…"),
+            callback = function() self:chooseLinkedBook() end,
+        },
+    }
+    for i, path in ipairs(self.store:getLinkedBooks(self:docPath())) do
+        local source_path = path
+        items[#items + 1] = {
+            text = T(_("%1 (%2)"), self:bookName(path), self.store:count(path)),
+            sub_item_table = {
+                { text = path, enabled = false },
+                {
+                    text = _("Убрать связь"),
+                    callback = function()
+                        self.store:removeLink(self:docPath(), source_path)
+                        UIManager:show(Notification:new{ text = _("Связь удалена. Закрепления сохранены.") })
+                    end,
+                },
+            },
+        }
+    end
+    return items
 end
 
 function KindlePin:registerHighlightButton()
@@ -234,48 +319,67 @@ function KindlePin:pinFromImageViewer(viewer)
     })
 end
 
-function KindlePin:deletePin(pin_id)
-    self.store:delete(self:docPath(), pin_id)
+function KindlePin:deletePin(pin)
+    self.store:delete(pin.doc_path or self:docPath(), pin.id)
+end
+
+local function jumpToPin(ui, pin)
+    local function tryJump(fn)
+        local ok, result = pcall(fn)
+        return ok and result ~= false
+    end
+    local jumped = false
+    if pin.xpointer and ui.rolling and ui.rolling.onGotoXPointer then
+        local valid = true
+        if ui.document.isXPointerInDocument then
+            local ok, found = pcall(ui.document.isXPointerInDocument, ui.document, pin.xpointer)
+            valid = ok and found
+        end
+        if valid then
+            jumped = tryJump(function()
+                return ui.rolling:onGotoXPointer(pin.xpointer, pin.xpointer)
+            end)
+        end
+    end
+    if not jumped and pin.page then
+        if ui.paging and ui.paging.onGotoPage then
+            jumped = tryJump(function() return ui.paging:onGotoPage(pin.page) end)
+        elseif ui.rolling and ui.rolling.onGotoPage then
+            jumped = tryJump(function() return ui.rolling:onGotoPage(pin.page) end)
+        elseif ui.handleEvent then
+            jumped = tryJump(function() return ui:handleEvent(Event:new("GotoPage", pin.page)) end)
+        end
+    end
+    if jumped and pin.pboxes and ui.view and ui.view.highlight and pin.page then
+        ui.view.highlight.temp[pin.page] = pin.pboxes
+        UIManager:setDirty(ui, "ui")
+    end
+    if not jumped then
+        UIManager:show(InfoMessage:new{ text = _("Не удалось перейти к фрагменту.") })
+    end
 end
 
 function KindlePin:goToPinLocation(pin)
-    if not pin then
-        return
-    end
+    if not pin then return end
     UIManager:nextTick(function()
-        local function tryJump(fn)
-            local ok, result = pcall(fn)
-            return ok and result ~= false
-        end
-        local jumped = false
-        if pin.xpointer and self.ui.rolling and self.ui.rolling.onGotoXPointer then
-            jumped = tryJump(function()
-                return self.ui.rolling:onGotoXPointer(pin.xpointer, pin.xpointer)
-            end)
-        end
-        if not jumped and pin.page then
-            if self.ui.paging and self.ui.paging.onGotoPage then
-                jumped = tryJump(function()
-                    return self.ui.paging:onGotoPage(pin.page)
-                end)
-            elseif self.ui.rolling and self.ui.rolling.onGotoPage then
-                jumped = tryJump(function()
-                    return self.ui.rolling:onGotoPage(pin.page)
-                end)
-            elseif self.ui.handleEvent then
-                jumped = tryJump(function()
-                    return self.ui:handleEvent(Event:new("GotoPage", pin.page))
-                end)
+        local source_path = pin.doc_path or self:docPath()
+        if source_path ~= self:docPath() then
+            -- Read stored pins even if the source was moved, but don't close the
+            -- current reader when an unavailable source cannot be opened.
+            local DocumentRegistry = require("document/documentregistry")
+            if lfs.attributes(source_path, "mode") ~= "file"
+                or not DocumentRegistry:hasProvider(source_path) or not self.ui.switchDocument
+            then
+                UIManager:show(InfoMessage:new{
+                    text = T(_("Не удалось открыть книгу закрепления:\n%1"), source_path),
+                })
+                return
             end
-        end
-        if jumped and pin.pboxes and self.view and self.view.highlight and pin.page then
-            self.view.highlight.temp[pin.page] = pin.pboxes
-            UIManager:setDirty(self.ui, "ui")
-        end
-        if not jumped then
-            UIManager:show(InfoMessage:new{
-                text = _("Не удалось перейти к фрагменту."),
-            })
+            self.ui:switchDocument(source_path, nil, function(reader)
+                jumpToPin(reader, pin)
+            end)
+        else
+            jumpToPin(self.ui, pin)
         end
     end)
 end
@@ -284,7 +388,7 @@ function KindlePin:showPins()
     local pins = self:listPins()
     if #pins == 0 then
         UIManager:show(InfoMessage:new{
-            text = _("Пока нет закреплений в этой книге.\nВыделите текст и нажмите «Закрепить», либо закрепите изображение из просмотрщика."),
+            text = _("Пока нет закреплений в этой книге и связанных книгах.\nВыделите текст и нажмите «Закрепить», либо закрепите изображение из просмотрщика."),
         })
         return
     end
@@ -318,18 +422,24 @@ function KindlePin:addToMainMenu(menu_items)
         sub_item_table = {
             {
                 text_func = function()
-                    local n = self.store:count(self:docPath())
+                    local n = self.store:countVisible(self:docPath())
                     if n > 0 then
                         return T(_("Просмотреть закрепления (%1)"), n)
                     end
                     return _("Просмотреть закрепления")
                 end,
                 enabled_func = function()
-                    return self.store:count(self:docPath()) > 0
+                    return self.store:countVisible(self:docPath()) > 0
                 end,
                 callback = function()
                     self:showPins()
                 end,
+            },
+            {
+                text_func = function()
+                    return T(_("Связанные книги (%1)"), #self.store:getLinkedBooks(self:docPath()))
+                end,
+                sub_item_table_func = function() return self:linkedBooksMenu() end,
             },
             {
                 text = _("Удалить все закрепления книги"),

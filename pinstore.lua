@@ -50,6 +50,9 @@ function PinStore:new()
     o.settings_path = settings_dir .. "/kindlepin.lua"
     o.media_dir = settings_dir .. "/kindlepin_media"
     o.settings = LuaSettings:open(o.settings_path)
+    -- Keep directional links separate so the existing per-book pin format stays
+    -- readable by older plugin versions.
+    o.links = LuaSettings:open(settings_dir .. "/kindlepin_links.lua")
     o._seq = 0
     return o
 end
@@ -93,6 +96,84 @@ function PinStore:listNewestFirst(doc_path)
     for i = #pins, 1, -1 do
         out[#out + 1] = pins[i]
     end
+    return out
+end
+
+function PinStore:getLinkedBooks(doc_path)
+    local out, seen = {}, {}
+    local links = doc_path and self.links:readSetting(doc_path)
+    for _, path in ipairs(type(links) == "table" and links or {}) do
+        if type(path) == "string" and path ~= "" and path ~= doc_path and not seen[path] then
+            out[#out + 1] = path
+            seen[path] = true
+        end
+    end
+    return out
+end
+
+function PinStore:addLink(doc_path, source_path)
+    if type(doc_path) ~= "string" or doc_path == ""
+        or type(source_path) ~= "string" or source_path == "" or doc_path == source_path
+    then
+        return false
+    end
+    local links = self:getLinkedBooks(doc_path)
+    for _, path in ipairs(links) do
+        if path == source_path then return false end
+    end
+    links[#links + 1] = source_path
+    self.links:saveSetting(doc_path, links)
+    self:flush()
+    return true
+end
+
+function PinStore:removeLink(doc_path, source_path)
+    local kept = {}
+    for _, path in ipairs(self:getLinkedBooks(doc_path)) do
+        if path ~= source_path then kept[#kept + 1] = path end
+    end
+    if #kept == 0 then
+        self.links:delSetting(doc_path)
+    else
+        self.links:saveSetting(doc_path, kept)
+    end
+    self:flush()
+end
+
+function PinStore:listBooksWithPins()
+    local paths = {}
+    for path, pins in pairs(self.settings.data) do
+        if type(path) == "string" and type(pins) == "table" and #pins > 0 then
+            paths[#paths + 1] = path
+        end
+    end
+    table.sort(paths)
+    return paths
+end
+
+function PinStore:countVisible(doc_path)
+    local count = self:count(doc_path)
+    for _, path in ipairs(self:getLinkedBooks(doc_path)) do
+        count = count + self:count(path)
+    end
+    return count
+end
+
+function PinStore:listForViewer(doc_path)
+    local out = {}
+    local function appendBook(path)
+        for _, pin in ipairs(self:listNewestFirst(path)) do
+            -- The origin belongs to this view entry, not to the persisted pin.
+            local entry = {}
+            for key, value in pairs(pin) do entry[key] = value end
+            entry.doc_path = path
+            out[#out + 1] = entry
+        end
+    end
+    appendBook(doc_path)
+    -- Deliberately follow only explicit outgoing links, never reverse or
+    -- transitive links. Even a cycle cannot recurse or duplicate a book.
+    for _, path in ipairs(self:getLinkedBooks(doc_path)) do appendBook(path) end
     return out
 end
 
@@ -149,6 +230,7 @@ end
 
 function PinStore:flush()
     self.settings:flush()
+    self.links:flush()
 end
 
 return PinStore
