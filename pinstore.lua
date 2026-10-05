@@ -53,6 +53,7 @@ function PinStore:new()
     -- Keep directional links separate so the existing per-book pin format stays
     -- readable by older plugin versions.
     o.links = LuaSettings:open(settings_dir .. "/kindlepin_links.lua")
+    o.options = LuaSettings:open(settings_dir .. "/kindlepin_options.lua")
     o._seq = 0
     return o
 end
@@ -88,6 +89,17 @@ end
 
 function PinStore:count(doc_path)
     return #self:getPins(doc_path)
+end
+
+function PinStore:getViewerMode()
+    return self.options:readSetting("viewer_mode") == "popup" and "popup" or "fullscreen"
+end
+
+function PinStore:setViewerMode(mode)
+    if mode ~= "popup" and mode ~= "fullscreen" then return false end
+    self.options:saveSetting("viewer_mode", mode)
+    self.options:flush()
+    return true
 end
 
 function PinStore:listNewestFirst(doc_path)
@@ -231,6 +243,7 @@ end
 function PinStore:flush()
     self.settings:flush()
     self.links:flush()
+    self.options:flush()
 end
 
 return PinStore

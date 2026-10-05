@@ -112,6 +112,10 @@ function KindlePin:onCloseWidget()
     end
 end
 
+function KindlePin:onCloseDocument()
+    if self._pin_dialog then UIManager:close(self._pin_dialog) end
+end
+
 function KindlePin:onFlushSettings()
     if self.store then
         self.store:flush()
@@ -385,6 +389,7 @@ function KindlePin:goToPinLocation(pin)
 end
 
 function KindlePin:showPins()
+    if self._show_pins_pending or self._pin_dialog then return end
     local pins = self:listPins()
     if #pins == 0 then
         UIManager:show(InfoMessage:new{
@@ -392,14 +397,21 @@ function KindlePin:showPins()
         })
         return
     end
-    -- Defer until after the triggering gesture/menu refresh, otherwise the
-    -- reader can repaint through the viewer on e-ink.
-    UIManager:nextTick(function()
-        UIManager:show(PinDialog:new{
+    local document = self.ui.document
+    self._show_pins_pending = true
+    -- Two ticks leave a repaint between the triggering gesture/menu and the
+    -- snapshot. Capturing earlier could preserve an open menu or gesture flash.
+    UIManager:tickAfterNext(function()
+        self._show_pins_pending = nil
+        if self.ui.document ~= document then return end
+        local dialog = PinDialog:new{
             pins = pins,
             index = 1,
             plugin = self,
-        })
+            popup = self.store:getViewerMode() == "popup",
+        }
+        self._pin_dialog = dialog
+        UIManager:show(dialog)
     end)
 end
 
@@ -458,6 +470,25 @@ function KindlePin:addToMainMenu(menu_items)
                         end,
                     })
                 end,
+            },
+            {
+                text_func = function()
+                    local mode = self.store:getViewerMode() == "popup"
+                        and _("Всплывающий") or _("Полноэкранный")
+                    return T(_("Вид просмотра: %1"), mode)
+                end,
+                sub_item_table = {
+                    {
+                        text = _("Полноэкранный"),
+                        checked_func = function() return self.store:getViewerMode() == "fullscreen" end,
+                        callback = function() self.store:setViewerMode("fullscreen") end,
+                    },
+                    {
+                        text = _("Всплывающий в правом нижнем углу"),
+                        checked_func = function() return self.store:getViewerMode() == "popup" end,
+                        callback = function() self.store:setViewerMode("popup") end,
+                    },
+                },
             },
         },
     }

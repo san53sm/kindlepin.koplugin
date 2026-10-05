@@ -1,5 +1,7 @@
 local BD = require("ui/bidi")
 local Blitbuffer = require("ffi/blitbuffer")
+local Button = require("ui/widget/button")
+local ButtonDialog = require("ui/widget/buttondialog")
 local ButtonTable = require("ui/widget/buttontable")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local ConfirmBox = require("ui/widget/confirmbox")
@@ -9,12 +11,16 @@ local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local FocusManager = require("ui/widget/focusmanager")
+local HorizontalGroup = require("ui/widget/horizontalgroup")
+local HorizontalSpan = require("ui/widget/horizontalspan")
 local ImageWidget = require("ui/widget/imagewidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
+local LineWidget = require("ui/widget/linewidget")
 local PinText = require("pintext")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local Size = require("ui/size")
 local TitleBar = require("ui/widget/titlebar")
+local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
@@ -39,6 +45,7 @@ local PinDialog = FocusManager:extend{
     pins = nil,
     index = 1,
     plugin = nil,
+    popup = false,
 }
 
 local function formatWhen(ts)
@@ -49,17 +56,21 @@ local function formatWhen(ts)
 end
 
 function PinDialog:init()
-    -- Fullscreen page: gestures otherwise refresh the book through a floating dialog.
+    if self.popup then self:captureBackground() end
+    -- Popup mode paints a frozen full-screen book background, then an opaque
+    -- panel. It really covers the framebuffer, so late reader paints are hidden.
     self.covers_fullscreen = true
+    self.stop_events_propagation = true
     self.align = "center"
     self.pins = self.pins or {}
     self.index = self.index or 1
     if Device:hasKeys() then
-        self.key_events = {
-            Close = { { Device.input.group.Back } },
-            ShowPrev = { { Device.input.group.PgBack } },
-            ShowNext = { { Device.input.group.PgFwd } },
-        }
+        -- Keep FocusManager's D-pad bindings so the popup menu and close
+        -- controls remain reachable on Kindle models without a touchscreen.
+        self.key_events = self.key_events or {}
+        self.key_events.Close = { { Device.input.group.Back } }
+        self.key_events.ShowPrev = { { Device.input.group.PgBack } }
+        self.key_events.ShowNext = { { Device.input.group.PgFwd } }
         if Device:hasScreenKB() or Device:hasKeyboard() then
             local modifier = Device:hasScreenKB() and "ScreenKB" or "Shift"
             self.key_events.ShowPrev = { { modifier, Device.input.group.PgBack } }
@@ -69,18 +80,54 @@ function PinDialog:init()
         end
     end
     if Device:isTouchDevice() then
-        local range = Geom:new{
-            x = 0, y = 0,
-            w = Screen:getWidth(),
-            h = Screen:getHeight(),
-        }
         self.ges_events = {
             SwipeNav = {
-                GestureRange:new{ ges = "swipe", range = range },
+                GestureRange:new{ ges = "swipe", range = function()
+                    return self.popup and self.panel_dimen or self.dimen
+                end },
             },
         }
     end
     self:buildLayout()
+end
+
+function PinDialog:freeBackground()
+    if self._background_bb then self._background_bb:free() end
+    self._background_bb = nil
+end
+
+function PinDialog:captureBackground()
+    self:freeBackground()
+    local ok, background = pcall(function() return Screen.bb:copy() end)
+    if ok and background then
+        self._background_bb = background
+    else
+        -- Never show a supposedly opaque popup without a valid background.
+        logger.warn("kindlepin: cannot capture screen, using fullscreen viewer", background)
+        self.popup = false
+    end
+end
+
+function PinDialog:paintTo(bb, x, y)
+    if self.skip_paint then return end
+    if not self.popup then return FocusManager.paintTo(self, bb, x, y) end
+    bb:blitFrom(self._background_bb, x, y, 0, 0, self.dimen.w, self.dimen.h)
+    self.dialog_frame:paintTo(bb, x + self.panel_dimen.x, y + self.panel_dimen.y)
+end
+
+function PinDialog:onKeyPress(key)
+    if self.skip_paint then return true end
+    FocusManager.onKeyPress(self, key)
+    return true
+end
+PinDialog.onKeyRepeat = PinDialog.onKeyPress
+
+function PinDialog:onGesture(ges)
+    if self.skip_paint then return true end
+    -- Even gestures outside the panel are consumed. The page is a visual
+    -- background, never an active reader while pins are shown.
+    FocusManager.onGesture(self, ges)
+    return true
 end
 
 function PinDialog:currentPin()
@@ -111,6 +158,7 @@ function PinDialog:buildLayout()
         w = screen_w,
         h = screen_h,
     }
+    if self.popup then return self:buildPopupLayout(pin, screen_w, screen_h) end
 
     local total = #self.pins
     local title = T(_("Закрепление %1 из %2"), self.index, total)
@@ -270,6 +318,161 @@ function PinDialog:buildLayout()
     end
 end
 
+function PinDialog:buildPopupLayout(pin, screen_w, screen_h)
+    local margin = Size.padding.large
+    local border = math.ceil(Size.border.window)
+    local panel_w = math.min(screen_w - 2 * margin,
+        math.max(math.floor(screen_w * 0.62), Screen:scaleBySize(260)))
+    local panel_h = math.floor(screen_h * (screen_w > screen_h and 0.78 or 0.58))
+    panel_h = math.min(panel_h, screen_h - 2 * margin)
+    local inner_w = panel_w - 2 * border
+    local control_w = Screen:scaleBySize(44)
+    local gap = Size.padding.small
+    local padding = Size.padding.default
+    local metadata_w = inner_w - 2 * control_w
+    if metadata_w < Screen:scaleBySize(100) then
+        self.popup = false
+        self:freeBackground()
+        return self:buildLayout()
+    end
+
+    local function control(text, callback, enabled)
+        return Button:new{
+            text = text, width = control_w,
+            bordersize = 0, margin = 0, padding = Size.padding.buttontable,
+            enabled = enabled ~= false, callback = callback, show_parent = self,
+        }
+    end
+    local menu_button = control("⋮", function() self:showActions() end)
+    local close_button = control("∨", function() self:onClose() end)
+    local header = HorizontalGroup:new{
+        menu_button,
+        HorizontalSpan:new{ width = inner_w - 2 * control_w },
+        close_button,
+    }
+    local previous = control("‹", function() self:onShowPrev() end, self.index > 1)
+    local next_pin = control("›", function() self:onShowNext() end, self.index < #self.pins)
+    local source = pin and pin.page and T(_("стр. %1"), pin.page) or ""
+    if pin and pin.doc_path and self.plugin then
+        local name = self.plugin:bookName(pin.doc_path)
+        source = source ~= "" and source .. " · " .. name or name
+    end
+    local metadata = VerticalGroup:new{
+        TextWidget:new{
+            text = T(_("Закрепление %1 из %2"), self.index, #self.pins),
+            face = Font:getFace("xx_smallinfofont", 14), max_width = metadata_w,
+        },
+        TextWidget:new{
+            text = source, face = Font:getFace("xx_smallinfofont", 12),
+            max_width = metadata_w,
+        },
+    }
+    local footer_h = math.max(metadata:getSize().h, previous:getSize().h, next_pin:getSize().h)
+    local footer = HorizontalGroup:new{
+        previous,
+        CenterContainer:new{ dimen = Geom:new{ w = metadata_w, h = footer_h }, metadata },
+        next_pin,
+    }
+    local line_h = Size.line.thin
+    local content_h = panel_h - 2 * border - header:getSize().h - footer_h
+        - 2 * line_h - 2 * padding - 2 * gap
+    local content_w = inner_w - 2 * padding
+    if content_h < Screen:scaleBySize(80) then
+        self.popup = false
+        self:freeBackground()
+        return self:buildLayout()
+    end
+    self.panel_dimen = Geom:new{
+        x = screen_w - margin - panel_w, y = screen_h - margin - panel_h,
+        w = panel_w, h = panel_h,
+    }
+    local content = pin and pin.type == "image"
+        and self:buildImageContent(pin, content_w, content_h)
+        or self:buildTextContent(pin, content_w, content_h)
+    local function line()
+        return LineWidget:new{ dimen = Geom:new{ w = inner_w, h = line_h },
+            background = Blitbuffer.COLOR_BLACK }
+    end
+    self.dialog_frame = FrameContainer:new{
+        width = panel_w, height = panel_h, bordersize = border,
+        padding = 0, margin = 0, radius = 0,
+        background = Blitbuffer.COLOR_WHITE,
+        VerticalGroup:new{
+            align = "left",
+            header, line(),
+            FrameContainer:new{
+                padding = padding, margin = 0, bordersize = 0,
+                CenterContainer:new{ dimen = Geom:new{ w = content_w, h = content_h }, content },
+            },
+            line(), VerticalSpan:new{ width = gap }, footer,
+            VerticalSpan:new{ width = gap },
+        },
+    }
+    self[1] = self.dialog_frame
+    self.layout = { { menu_button, close_button }, { previous, next_pin } }
+    self:moveFocusTo(1, 1)
+end
+
+function PinDialog:showActions()
+    local pin = self:currentPin()
+    local can_expand = pin ~= nil and (pin.type ~= "image"
+        or (pin.image_file and lfs.attributes(pin.image_file, "mode") == "file"))
+    local actions
+    local function action(callback)
+        return function()
+            UIManager:close(actions)
+            callback()
+        end
+    end
+    actions = ButtonDialog:new{
+        title = T(_("Закрепление %1 из %2"), self.index, #self.pins),
+        buttons = {
+            { { text = _("К фрагменту"), enabled = pin ~= nil,
+                callback = action(function() self:goToLocation() end) } },
+            { { text = _("На весь экран"), enabled = can_expand,
+                callback = action(function()
+                    if pin.type == "image" then self:openFullscreen() else self:expandText() end
+                end) } },
+            { { text = _("Сведения"), callback = action(function()
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = table.concat({ pin and pin.doc_path or "",
+                        pin and pin.page and T(_("стр. %1"), pin.page) or "",
+                        formatWhen(pin and pin.created_at) }, "\n"),
+                })
+            end) } },
+            { { text = _("Удалить"), enabled = pin ~= nil,
+                callback = action(function() self:confirmDelete() end) } },
+            { { text = _("Закрыть меню"), callback = function() UIManager:close(actions) end } },
+        },
+    }
+    UIManager:show(actions)
+end
+
+function PinDialog:expandText()
+    local pins, index, plugin = self.pins, self.index, self.plugin
+    local document = plugin and plugin.ui.document
+    self:onClose()
+    UIManager:nextTick(function()
+        if plugin and plugin.ui.document ~= document then return end
+        local dialog = PinDialog:new{ pins = pins, index = index, plugin = plugin }
+        if plugin then plugin._pin_dialog = dialog end
+        UIManager:show(dialog)
+    end)
+end
+
+function PinDialog:onScreenResize()
+    if self._closed then return end
+    if self.popup then
+        -- A screen snapshot belongs to one orientation. Close it rather than
+        -- capture an action menu or image viewer that may currently be on top.
+        self:onClose()
+    else
+        self:buildLayout()
+        UIManager:setDirty(self, "full")
+    end
+end
+
 function PinDialog:buildTextContent(pin, width, height)
     if pin and type(pin.html) == "string" and pin.html ~= "" then
         -- Older KOReader builds may lack this widget. Keep plain text usable.
@@ -349,7 +552,7 @@ end
 
 function PinDialog:rebuild()
     self:buildLayout()
-    UIManager:setDirty(self, "ui")
+    UIManager:setDirty(self, "ui", self.popup and self.panel_dimen or nil)
 end
 
 function PinDialog:showAt(index)
@@ -389,6 +592,9 @@ end
 function PinDialog:onSwipeNav(_, ges)
     if not ges or not ges.direction then
         return false
+    end
+    if self.popup and (not ges.pos or not ges.pos:intersectWith(self.panel_dimen)) then
+        return true
     end
     if ges.direction == "west" then
         if BD.mirroredUILayout() then
@@ -483,8 +689,12 @@ function PinDialog:onClose()
 end
 
 function PinDialog:onCloseWidget()
+    self._closed = true
     self:freeContent()
-    UIManager:setDirty(nil, "full")
+    self:freeBackground()
+    if self.plugin and self.plugin._pin_dialog == self then self.plugin._pin_dialog = nil end
+    -- A snapshot may have hidden reader updates, so explicitly repaint it.
+    UIManager:setDirty("all", "full")
 end
 
 return PinDialog
