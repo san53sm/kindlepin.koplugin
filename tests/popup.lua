@@ -196,6 +196,23 @@ return function(test, contains)
         assert(not background.freed)
     end)
 
+    test("an outside tap closes only the popup and consumes the tap before the reader sees it", function()
+        support.framebuffer("book")
+        local dialog = dialogFor()
+        local rectangle = dialog.panel_dimen
+        local background = dialog._background_bb
+        assert(dialog.ges_events.TapOutside[1].range() == dialog.dimen)
+        assert(not dialog:onTapOutside(nil, { pos = position(rectangle.x + 1, rectangle.y + 1) }))
+        assert(not dialog._closed and not background.freed)
+        assert(dialog:onSwipeNav(nil, { direction = "west", pos = position(0, 0) }))
+        assert(not dialog._closed)
+        assert(dialog:onTapOutside(nil, { pos = position(0, 0) }))
+        assert(dialog._closed and background.freed and support.closed[#support.closed] == dialog)
+        local fullscreen = dialogFor({ pins = { { text = "pin" } } })
+        assert(not fullscreen.ges_events.TapOutside)
+        assert(not fullscreen:onTapOutside(nil, { pos = position(0, 0) }) and not fullscreen._closed)
+    end)
+
     test("popup supports saved HTML and image previews without changing their contents", function()
         support.framebuffer("book")
         local html = dialogFor({ popup = true, index = 1, pins = {

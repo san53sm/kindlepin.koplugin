@@ -88,6 +88,11 @@ function PinDialog:init()
                 end },
             },
         }
+        if self.popup then
+            self.ges_events.TapOutside = {
+                GestureRange:new{ ges = "tap", range = function() return self.dimen end },
+            }
+        end
     end
     self:buildLayout()
 end
@@ -615,6 +620,15 @@ function PinDialog:onSwipeNav(_, ges)
         return true
     end
     -- north/south are handled by ScrollTextWidget when present
+    return false
+end
+
+function PinDialog:onTapOutside(_, ges)
+    if self.popup and ges and ges.pos and not ges.pos:intersectWith(self.panel_dimen) then
+        self:onClose()
+        -- Consume the closing tap so it cannot turn the reader page below us.
+        return true
+    end
     return false
 end
 
