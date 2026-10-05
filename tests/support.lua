@@ -34,6 +34,8 @@ function Support.reset()
     Support.closed, Support.dirty, Support.tasks = {}, {}, {}
     Support.defer = false
     Support.key_calls, Support.gesture_calls = 0, 0
+    G_reader_settings = { readSetting = function() return "C" end }
+    package.loaded.gettext.current_lang = "C"
 end
 for _, name in ipairs({
     "ui/widget/confirmbox", "ui/widget/infomessage", "ui/widget/notification",
@@ -50,7 +52,9 @@ for _, name in ipairs({
     Support.stub(name, Widget:extend{})
 end
 Support.stub("logger", { dbg = function() end, warn = function() end })
-Support.stub("gettext", function(text) return text end)
+Support.stub("gettext", setmetatable({ current_lang = "C" }, {
+    __call = function(_, text) return text end,
+}))
 Support.stub("ffi/util", { template = function(text, ...)
     local args = {...}
     return (text:gsub("%%(%d+)", function(n) return tostring(args[tonumber(n)]) end))

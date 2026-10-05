@@ -19,7 +19,7 @@ local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local logger = require("logger")
 local util = require("util")
 local lfs = require("libs/libkoreader-lfs")
-local _ = require("gettext")
+local _ = require("pinlocale")
 local T = require("ffi/util").template
 
 local KindlePin = WidgetContainer:extend{
@@ -79,13 +79,13 @@ function KindlePin:onDispatcherRegisterActions()
     Dispatcher:registerAction("kindlepin_show", {
         category = "none",
         event = "KindlePinShow",
-        title = _("Показать закрепления"),
+        title = _("Show pins"),
         reader = true,
     })
     Dispatcher:registerAction("kindlepin_pin_selection", {
         category = "none",
         event = "KindlePinSelection",
-        title = _("Закрепить выделение"),
+        title = _("Pin selection"),
         reader = true,
     })
 end
@@ -131,13 +131,13 @@ function KindlePin:listPins()
 end
 
 function KindlePin:bookName(path)
-    return path and path:match("([^/]+)$") or _("Неизвестная книга")
+    return path and path:match("([^/]+)$") or _("Unknown book")
 end
 
 function KindlePin:linkBook(path)
     if self.store:addLink(self:docPath(), path) then
         UIManager:show(Notification:new{
-            text = T(_("Связаны закрепления: %1"), self:bookName(path)),
+            text = T(_("Pins linked: %1"), self:bookName(path)),
         })
     end
 end
@@ -146,7 +146,7 @@ function KindlePin:chooseLinkedBook()
     local PathChooser = require("ui/widget/pathchooser")
     local DocumentRegistry = require("document/documentregistry")
     UIManager:show(PathChooser:new{
-        title = _("Удерживайте файл книги для добавления связи"),
+        title = _("Long-press a book file to link its pins"),
         path = self:docPath():match("^(.*)/") or ".",
         select_directory = false,
         select_file = true,
@@ -155,7 +155,7 @@ function KindlePin:chooseLinkedBook()
         end,
         onConfirm = function(path)
             if path == self:docPath() then
-                UIManager:show(InfoMessage:new{ text = _("Книгу нельзя связать с самой собой.") })
+                UIManager:show(InfoMessage:new{ text = _("A book cannot be linked to itself.") })
                 return
             end
             self:linkBook(path)
@@ -178,20 +178,20 @@ function KindlePin:linkCandidates()
         end
     end
     if #items == 0 then
-        items[1] = { text = _("Нет других книг с закреплениями"), enabled = false }
+        items[1] = { text = _("No other books with pins"), enabled = false }
     end
     return items
 end
 
 function KindlePin:linkedBooksMenu()
     local items = {
-        { text = _("Связи действуют только из этой книги"), enabled = false },
+        { text = _("Links are one-way from this book"), enabled = false },
         {
-            text = _("Добавить книгу с закреплениями"),
+            text = _("Add a book with pins"),
             sub_item_table_func = function() return self:linkCandidates() end,
         },
         {
-            text = _("Выбрать файл книги…"),
+            text = _("Choose a book file…"),
             callback = function() self:chooseLinkedBook() end,
         },
     }
@@ -202,10 +202,10 @@ function KindlePin:linkedBooksMenu()
             sub_item_table = {
                 { text = path, enabled = false },
                 {
-                    text = _("Убрать связь"),
+                    text = _("Remove link"),
                     callback = function()
                         self.store:removeLink(self:docPath(), source_path)
-                        UIManager:show(Notification:new{ text = _("Связь удалена. Закрепления сохранены.") })
+                        UIManager:show(Notification:new{ text = _("Link removed. Pins kept.") })
                     end,
                 },
             },
@@ -217,7 +217,7 @@ end
 function KindlePin:registerHighlightButton()
     self.ui.highlight:addToHighlightDialog("12_kindlepin", function(reader_highlight)
         return {
-            text = _("Закрепить"),
+            text = _("Pin"),
             enabled = true,
             show_in_highlight_dialog_func = function()
                 local sel = reader_highlight.selected_text
@@ -267,7 +267,7 @@ function KindlePin:pinFromHighlight(reader_highlight)
     local text = cleanText(selected.text)
     if text == "" then
         UIManager:show(InfoMessage:new{
-            text = _("Нет текста для закрепления."),
+            text = _("No text to pin."),
         })
         return
     end
@@ -289,7 +289,7 @@ function KindlePin:pinFromHighlight(reader_highlight)
     end
     self.store:add(self:docPath(), pin)
     UIManager:show(Notification:new{
-        text = _("Закреплено"),
+        text = _("Pinned"),
     })
 end
 
@@ -305,7 +305,7 @@ function KindlePin:pinFromImageViewer(viewer)
     if not ok then
         logger.warn("kindlepin: failed to save image", err)
         UIManager:show(InfoMessage:new{
-            text = _("Не удалось сохранить изображение."),
+            text = _("Failed to save the image."),
         })
         return
     end
@@ -313,13 +313,13 @@ function KindlePin:pinFromImageViewer(viewer)
     self.store:add(doc_path, {
         id = id,
         type = "image",
-        text = _("Изображение"),
+        text = _("Image"),
         image_file = path,
         page = loc.page,
         xpointer = loc.xpointer,
     })
     UIManager:show(Notification:new{
-        text = _("Изображение закреплено"),
+        text = _("Image pinned"),
     })
 end
 
@@ -359,7 +359,7 @@ local function jumpToPin(ui, pin)
         UIManager:setDirty(ui, "ui")
     end
     if not jumped then
-        UIManager:show(InfoMessage:new{ text = _("Не удалось перейти к фрагменту.") })
+        UIManager:show(InfoMessage:new{ text = _("Failed to jump to the passage.") })
     end
 end
 
@@ -375,7 +375,7 @@ function KindlePin:goToPinLocation(pin)
                 or not DocumentRegistry:hasProvider(source_path) or not self.ui.switchDocument
             then
                 UIManager:show(InfoMessage:new{
-                    text = T(_("Не удалось открыть книгу закрепления:\n%1"), source_path),
+                    text = T(_("Failed to open the pin's book:\n%1"), source_path),
                 })
                 return
             end
@@ -393,7 +393,7 @@ function KindlePin:showPins()
     local pins = self:listPins()
     if #pins == 0 then
         UIManager:show(InfoMessage:new{
-            text = _("Пока нет закреплений в этой книге и связанных книгах.\nВыделите текст и нажмите «Закрепить», либо закрепите изображение из просмотрщика."),
+            text = _("No pins in this book or its linked books yet.\nSelect text and tap “Pin”, or pin an image from the image viewer."),
         })
         return
     end
@@ -429,16 +429,16 @@ end
 
 function KindlePin:addToMainMenu(menu_items)
     menu_items.kindlepin = {
-        text = _("Закрепления"),
+        text = _("Pins"),
         sorting_hint = "tools",
         sub_item_table = {
             {
                 text_func = function()
                     local n = self.store:countVisible(self:docPath())
                     if n > 0 then
-                        return T(_("Просмотреть закрепления (%1)"), n)
+                        return T(_("View pins (%1)"), n)
                     end
-                    return _("Просмотреть закрепления")
+                    return _("View pins")
                 end,
                 enabled_func = function()
                     return self.store:countVisible(self:docPath()) > 0
@@ -449,23 +449,24 @@ function KindlePin:addToMainMenu(menu_items)
             },
             {
                 text_func = function()
-                    return T(_("Связанные книги (%1)"), #self.store:getLinkedBooks(self:docPath()))
+                    return T(_("Linked books (%1)"), #self.store:getLinkedBooks(self:docPath()))
                 end,
                 sub_item_table_func = function() return self:linkedBooksMenu() end,
             },
             {
-                text = _("Удалить все закрепления книги"),
+                text = _("Delete all pins in this book"),
                 enabled_func = function()
                     return self.store:count(self:docPath()) > 0
                 end,
                 callback = function()
                     UIManager:show(ConfirmBox:new{
-                        text = _("Удалить все закрепления в этой книге?"),
-                        ok_text = _("Удалить"),
+                        text = _("Delete all pins in this book?"),
+                        ok_text = _("Delete"),
+                        cancel_text = _("Cancel"),
                         ok_callback = function()
                             self.store:deleteAll(self:docPath())
                             UIManager:show(Notification:new{
-                                text = _("Закрепления удалены"),
+                                text = _("Pins deleted"),
                             })
                         end,
                     })
@@ -474,17 +475,17 @@ function KindlePin:addToMainMenu(menu_items)
             {
                 text_func = function()
                     local mode = self.store:getViewerMode() == "popup"
-                        and _("Всплывающий") or _("Полноэкранный")
-                    return T(_("Вид просмотра: %1"), mode)
+                        and _("Popup") or _("Fullscreen")
+                    return T(_("Viewer mode: %1"), mode)
                 end,
                 sub_item_table = {
                     {
-                        text = _("Полноэкранный"),
+                        text = _("Fullscreen"),
                         checked_func = function() return self.store:getViewerMode() == "fullscreen" end,
                         callback = function() self.store:setViewerMode("fullscreen") end,
                     },
                     {
-                        text = _("Всплывающий в правом нижнем углу"),
+                        text = _("Popup in the bottom-right corner"),
                         checked_func = function() return self.store:getViewerMode() == "popup" end,
                         callback = function() self.store:setViewerMode("popup") end,
                     },

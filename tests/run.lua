@@ -227,7 +227,7 @@ test("viewer warns about the linked source and refreshes after deletion", functi
     dialog:confirmDelete()
     local confirmation = support.shown[1]
     contains(confirmation.text, "source.fb2")
-    contains(confirmation.text, "исходной книги")
+    contains(confirmation.text, "original book")
     confirmation.ok_callback()
     assert(closed and store:count("source.fb2") == 0)
 end)
@@ -353,4 +353,5 @@ end)
 
 require("fonts")(test, contains)
 require("popup")(test, contains)
+require("locale")(test, contains)
 print(string.format("%d tests passed", passed))

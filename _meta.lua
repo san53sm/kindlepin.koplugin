@@ -1,6 +1,6 @@
-local _ = require("gettext")
+local _ = require("pinlocale")
 return {
     name = "kindlepin",
-    fullname = _("Pin"),
-    description = _([[Закрепляет выделенный текст и изображения и позволяет просматривать их, не уходя с текущей страницы.]]),
+    fullname = "Pin",
+    description = _("Pin selected text and images and browse them without leaving the current page."),
 }

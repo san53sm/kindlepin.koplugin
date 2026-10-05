@@ -27,7 +27,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
-local _ = require("gettext")
+local _ = require("pinlocale")
 local T = require("ffi/util").template
 local Screen = Device.screen
 
@@ -167,19 +167,19 @@ function PinDialog:buildLayout()
     if self.popup then return self:buildPopupLayout(pin, screen_w, screen_h) end
 
     local total = #self.pins
-    local title = T(_("Закрепление %1 из %2"), self.index, total)
+    local title = T(_("Pin %1 of %2"), self.index, total)
     local subtitle_parts = {}
     if pin then
         if pin.doc_path and self.plugin then
             subtitle_parts[#subtitle_parts + 1] = self.plugin:bookName(pin.doc_path)
         end
         if pin.type == "image" then
-            subtitle_parts[#subtitle_parts + 1] = _("изображение")
+            subtitle_parts[#subtitle_parts + 1] = _("image")
         else
-            subtitle_parts[#subtitle_parts + 1] = _("текст")
+            subtitle_parts[#subtitle_parts + 1] = _("text")
         end
         if pin.page then
-            subtitle_parts[#subtitle_parts + 1] = T(_("стр. %1"), pin.page)
+            subtitle_parts[#subtitle_parts + 1] = T(_("p. %1"), pin.page)
         end
         local when = formatWhen(pin.created_at)
         if when ~= "" then
@@ -203,14 +203,14 @@ function PinDialog:buildLayout()
     local buttons = {
         {
             {
-                text = _("Пред."),
+                text = _("Prev."),
                 enabled = self.index > 1,
                 callback = function()
                     self:showAt(self.index - 1)
                 end,
             },
             {
-                text = _("След."),
+                text = _("Next"),
                 enabled = self.index < total,
                 callback = function()
                     self:showAt(self.index + 1)
@@ -219,14 +219,14 @@ function PinDialog:buildLayout()
         },
         {
             {
-                text = _("К фрагменту"),
+                text = _("Go to passage"),
                 enabled = pin ~= nil,
                 callback = function()
                     self:goToLocation()
                 end,
             },
             {
-                text = _("На весь экран"),
+                text = _("Open fullscreen"),
                 enabled = is_image and pin and pin.image_file
                     and lfs.attributes(pin.image_file, "mode") == "file",
                 callback = function()
@@ -236,14 +236,14 @@ function PinDialog:buildLayout()
         },
         {
             {
-                text = _("Удалить"),
+                text = _("Delete"),
                 enabled = pin ~= nil,
                 callback = function()
                     self:confirmDelete()
                 end,
             },
             {
-                text = _("Закрыть"),
+                text = _("Close"),
                 callback = function()
                     self:onClose()
                 end,
@@ -358,14 +358,14 @@ function PinDialog:buildPopupLayout(pin, screen_w, screen_h)
     }
     local previous = control("‹", function() self:onShowPrev() end, self.index > 1)
     local next_pin = control("›", function() self:onShowNext() end, self.index < #self.pins)
-    local source = pin and pin.page and T(_("стр. %1"), pin.page) or ""
+    local source = pin and pin.page and T(_("p. %1"), pin.page) or ""
     if pin and pin.doc_path and self.plugin then
         local name = self.plugin:bookName(pin.doc_path)
         source = source ~= "" and source .. " · " .. name or name
     end
     local metadata = VerticalGroup:new{
         TextWidget:new{
-            text = T(_("Закрепление %1 из %2"), self.index, #self.pins),
+            text = T(_("Pin %1 of %2"), self.index, #self.pins),
             face = Font:getFace("xx_smallinfofont", 14), max_width = metadata_w,
         },
         TextWidget:new{
@@ -431,25 +431,25 @@ function PinDialog:showActions()
         end
     end
     actions = ButtonDialog:new{
-        title = T(_("Закрепление %1 из %2"), self.index, #self.pins),
+        title = T(_("Pin %1 of %2"), self.index, #self.pins),
         buttons = {
-            { { text = _("К фрагменту"), enabled = pin ~= nil,
+            { { text = _("Go to passage"), enabled = pin ~= nil,
                 callback = action(function() self:goToLocation() end) } },
-            { { text = _("На весь экран"), enabled = can_expand,
+            { { text = _("Open fullscreen"), enabled = can_expand,
                 callback = action(function()
                     if pin.type == "image" then self:openFullscreen() else self:expandText() end
                 end) } },
-            { { text = _("Сведения"), callback = action(function()
+            { { text = _("Details"), callback = action(function()
                 local InfoMessage = require("ui/widget/infomessage")
                 UIManager:show(InfoMessage:new{
                     text = table.concat({ pin and pin.doc_path or "",
-                        pin and pin.page and T(_("стр. %1"), pin.page) or "",
+                        pin and pin.page and T(_("p. %1"), pin.page) or "",
                         formatWhen(pin and pin.created_at) }, "\n"),
                 })
             end) } },
-            { { text = _("Удалить"), enabled = pin ~= nil,
+            { { text = _("Delete"), enabled = pin ~= nil,
                 callback = action(function() self:confirmDelete() end) } },
-            { { text = _("Закрыть меню"), callback = function() UIManager:close(actions) end } },
+            { { text = _("Close menu"), callback = function() UIManager:close(actions) end } },
         },
     }
     UIManager:show(actions)
@@ -502,7 +502,7 @@ function PinDialog:buildTextContent(pin, width, height)
         end
         logger.warn("kindlepin: HTML rendering failed, using plain text", widget)
     end
-    local text = (pin and pin.text) or _("(пусто)")
+    local text = (pin and pin.text) or _("(empty)")
     self._scroll_wg = ScrollTextWidget:new{
         text = text,
         face = typography.face,
@@ -521,7 +521,7 @@ function PinDialog:buildImageContent(pin, width, height)
     local path = pin and pin.image_file
     if not path or lfs.attributes(path, "mode") ~= "file" then
         self._scroll_wg = ScrollTextWidget:new{
-            text = _("Изображение недоступно."),
+            text = _("Image unavailable."),
             face = Font:getFace("x_smallinfofont"),
             width = width,
             height = height,
@@ -650,7 +650,7 @@ function PinDialog:openFullscreen()
         file = pin.image_file,
         image_disposable = false,
         with_title_bar = true,
-        title_text = _("Закреплённое изображение"),
+        title_text = _("Pinned image"),
         fullscreen = true,
         buttons_visible = true,
     })
@@ -670,13 +670,14 @@ function PinDialog:confirmDelete()
     if not pin then
         return
     end
-    local text = _("Удалить это закрепление?")
+    local text = _("Delete this pin?")
     if self.plugin and pin.doc_path and pin.doc_path ~= self.plugin:docPath() then
-        text = T(_("Удалить это закрепление из связанной книги?\n%1\n\nОно исчезнет и при просмотре исходной книги."), pin.doc_path)
+        text = T(_("Delete this pin from the linked book?\n%1\n\nIt will also disappear from the original book."), pin.doc_path)
     end
     UIManager:show(ConfirmBox:new{
         text = text,
-        ok_text = _("Удалить"),
+        ok_text = _("Delete"),
+        cancel_text = _("Cancel"),
         ok_callback = function()
             self:deleteCurrent()
         end,

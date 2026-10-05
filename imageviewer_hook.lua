@@ -1,6 +1,6 @@
 local ButtonTable = require("ui/widget/buttontable")
 local ImageViewer = require("ui/widget/imageviewer")
-local _ = require("gettext")
+local _ = require("pinlocale")
 
 local ImageViewerHook = {}
 
@@ -25,7 +25,7 @@ function ImageViewerHook.install(get_active_plugin)
                 table.insert(options.buttons, 1, {
                     {
                         id = "kindlepin",
-                        text = _("Закрепить"),
+                        text = _("Pin"),
                         callback = function()
                             plugin:pinFromImageViewer(viewer)
                         end,
