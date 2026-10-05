@@ -323,8 +323,8 @@ function PinDialog:buildPopupLayout(pin, screen_w, screen_h)
     local margin = Size.padding.large
     local border = math.ceil(Size.border.window)
     local panel_w = math.min(screen_w - 2 * margin,
-        math.max(math.floor(screen_w * 0.62), Screen:scaleBySize(260)))
-    local panel_h = math.floor(screen_h * (screen_w > screen_h and 0.78 or 0.58))
+        math.max(math.floor(screen_w * 0.65), Screen:scaleBySize(260)))
+    local panel_h = math.floor(screen_h * (screen_w > screen_h and 0.78 or 2 / 3))
     panel_h = math.min(panel_h, screen_h - 2 * margin)
     local inner_w = panel_w - 2 * border
     local control_w = Screen:scaleBySize(44)
