@@ -1,8 +1,8 @@
 [Русский](README.ru.md)
 
-# Pin for KOReader
+# pin.koplugin for KOReader
 
-Kindle-style pins for selected text and images. Save passages and browse them without
+Pin selected text and images in KOReader. Save passages and browse them without
 returning to their original page. The default viewer is fullscreen; an optional compact
 panel appears in the bottom-right corner over the book page.
 
@@ -10,7 +10,7 @@ panel appears in the bottom-right corner over the book page.
 
 1. Pin selected text from the selection menu.
 2. Pin images from KOReader's image viewer (long-press an image in the book → **Pin**).
-3. Browse pins from newest to oldest in fullscreen or in a compact Kindle-style panel.
+3. Browse pins from newest to oldest in fullscreen or in a compact popup panel.
 4. Scroll long text within the viewer.
 5. Open pinned images fullscreen and zoom them.
 6. Return to the original passage with **Go to passage**.
@@ -23,8 +23,8 @@ panel appears in the bottom-right corner over the book page.
 
 ## Installation
 
-1. Copy the `kindlepin.koplugin` folder into KOReader's plugins directory:
-   `koreader/plugins/kindlepin.koplugin/` on Kindle, Kobo and PocketBook.
+1. Copy the `pin.koplugin` folder into KOReader's plugins directory:
+   `koreader/plugins/pin.koplugin/`.
 2. Restart KOReader.
 3. Enable **Pin** in KOReader's plugin management menu under **More tools**.
 
@@ -36,10 +36,10 @@ panel appears in the bottom-right corner over the book page.
   Use **Prev.** / **Next** or swipe left/right to switch between pins.
 - **Gestures:** the gesture settings offer **Show pins** and **Pin selection** actions.
 
-Pins are stored in `koreader/settings/kindlepin.lua`, images in
-`koreader/settings/kindlepin_media/`, and book links in
-`koreader/settings/kindlepin_links.lua`. Pins and links are associated with the book's
-file path. The viewer mode is stored in `koreader/settings/kindlepin_options.lua`
+Pins are stored in `koreader/settings/pin.lua`, images in
+`koreader/settings/pin_media/`, and book links in
+`koreader/settings/pin_links.lua`. Pins and links are associated with the book's
+file path. The viewer mode is stored in `koreader/settings/pin_options.lua`
 and applies to all books.
 
 ## Interface language
@@ -83,7 +83,7 @@ does not show through the pin on later redraws. The snapshot stays in memory for
 viewing session and is freed on close; it is not written to storage.
 Rotating the screen closes the compact viewer; reopen it in the new orientation.
 If a snapshot cannot be captured or the panel does not fit, the plugin uses fullscreen.
-The compact layout still needs visual verification on a physical Kindle.
+The compact layout still needs visual verification on a physical device.
 
 ## Text formatting
 
@@ -135,8 +135,8 @@ the next time the viewer is opened.
 
 If a source book is moved or deleted, saved text and separately saved images remain
 available, but jumping to the passage will fail. Pins and links do not automatically
-follow a moved book to its new path. For backups, keep `kindlepin.lua`,
-`kindlepin_links.lua`, `kindlepin_options.lua` and the `kindlepin_media/` directory.
+follow a moved book to its new path. For backups, keep `pin.lua`,
+`pin_links.lua`, `pin_options.lua` and the `pin_media/` directory.
 
 ## Development
 

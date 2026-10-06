@@ -47,13 +47,12 @@ end
 function PinStore:new()
     local o = setmetatable({}, self)
     local settings_dir = DataStorage:getSettingsDir()
-    o.settings_path = settings_dir .. "/kindlepin.lua"
-    o.media_dir = settings_dir .. "/kindlepin_media"
+    o.settings_path = settings_dir .. "/pin.lua"
+    o.media_dir = settings_dir .. "/pin_media"
     o.settings = LuaSettings:open(o.settings_path)
-    -- Keep directional links separate so the existing per-book pin format stays
-    -- readable by older plugin versions.
-    o.links = LuaSettings:open(settings_dir .. "/kindlepin_links.lua")
-    o.options = LuaSettings:open(settings_dir .. "/kindlepin_options.lua")
+    -- Store book links and viewer options separately from pin content.
+    o.links = LuaSettings:open(settings_dir .. "/pin_links.lua")
+    o.options = LuaSettings:open(settings_dir .. "/pin_options.lua")
     o._seq = 0
     return o
 end
@@ -218,7 +217,7 @@ function PinStore:delete(doc_path, pin_id)
     if removed and removed.image_file then
         local ok, err = os.remove(removed.image_file)
         if not ok then
-            logger.dbg("kindlepin: could not remove image", removed.image_file, err)
+            logger.dbg("pin: could not remove image", removed.image_file, err)
         end
     end
     self:flush()

@@ -5,10 +5,10 @@ local _ = require("pinlocale")
 local ImageViewerHook = {}
 
 function ImageViewerHook.install(get_active_plugin)
-    if ImageViewer._kindlepin_hooked then
+    if ImageViewer._pin_hooked then
         return
     end
-    ImageViewer._kindlepin_hooked = true
+    ImageViewer._pin_hooked = true
 
     local orig_init = ImageViewer.init
     ImageViewer.init = function(viewer)
@@ -24,7 +24,7 @@ function ImageViewerHook.install(get_active_plugin)
             then
                 table.insert(options.buttons, 1, {
                     {
-                        id = "kindlepin",
+                        id = "pin",
                         text = _("Pin"),
                         callback = function()
                             plugin:pinFromImageViewer(viewer)

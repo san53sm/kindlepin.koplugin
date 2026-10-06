@@ -43,7 +43,7 @@ return function(test, contains)
         local store = Store:new()
         local menu = {}
         pluginFor(store):addToMainMenu(menu)
-        local modes = menu.kindlepin.sub_item_table[4]
+        local modes = menu.pin.sub_item_table[4]
         contains(modes.text_func(), "Fullscreen")
         assert(modes.sub_item_table[1].checked_func() and not modes.sub_item_table[2].checked_func())
         modes.sub_item_table[2].callback()
@@ -74,11 +74,11 @@ return function(test, contains)
             local plugin = pluginFor(store)
             support.defer = true
             realNew(function()
-                if opener == "gesture" then plugin:onKindlePinShow()
+                if opener == "gesture" then plugin:onPinShow()
                 else
                     local menu = {}
                     plugin:addToMainMenu(menu)
-                    menu.kindlepin.sub_item_table[1].callback()
+                    menu.pin.sub_item_table[1].callback()
                 end
                 plugin:showPins() -- Repeated triggers must not stack dialogs.
                 assert(#support.shown == 0 and #support.tasks == 1)

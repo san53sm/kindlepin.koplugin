@@ -4,7 +4,7 @@ local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 
 local PinFont = {}
-local FAMILY = "KindlePinReader"
+local FAMILY = "PinReader"
 
 local function call(object, method)
     if not object or type(object[method]) ~= "function" then return end
@@ -52,7 +52,7 @@ function PinFont.forReader(ui)
     -- MuPDF's CSS font loader opens face 0 of a collection. Do not silently
     -- substitute a different family for a selected face at another index.
     if regular.index ~= 0 then
-        logger.warn("kindlepin: HTML font collections require face index 0", regular.path, regular.index)
+        logger.warn("pin: HTML font collections require face index 0", regular.path, regular.index)
         return options
     end
     local css = {}
@@ -63,7 +63,7 @@ function PinFont.forReader(ui)
         if not variant or variant.index ~= 0 then variant = regular end
         local path = variant.path
         if path:sub(1, 1) ~= "/" then path = lfs.currentdir() .. "/" .. path end
-        -- All sources share the root archive, including Kindle system fonts
+        -- All sources share the root archive, including device system fonts
         -- outside KOReader's font folder. MuPDF decodes archive URL names.
         local url = path:sub(2):gsub("[^%w%-%._~/]", function(char)
             return string.format("%%%02X", char:byte())

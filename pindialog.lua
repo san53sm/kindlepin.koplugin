@@ -67,7 +67,7 @@ function PinDialog:init()
     self.index = self.index or 1
     if Device:hasKeys() then
         -- Keep FocusManager's D-pad bindings so the popup menu and close
-        -- controls remain reachable on Kindle models without a touchscreen.
+        -- controls remain reachable on devices without a touchscreen.
         self.key_events = self.key_events or {}
         self.key_events.Close = { { Device.input.group.Back } }
         self.key_events.ShowPrev = { { Device.input.group.PgBack } }
@@ -109,7 +109,7 @@ function PinDialog:captureBackground()
         self._background_bb = background
     else
         -- Never show a supposedly opaque popup without a valid background.
-        logger.warn("kindlepin: cannot capture screen, using fullscreen viewer", background)
+        logger.warn("pin: cannot capture screen, using fullscreen viewer", background)
         self.popup = false
     end
 end
@@ -500,7 +500,7 @@ function PinDialog:buildTextContent(pin, width, height)
             self._scroll_wg = widget
             return widget
         end
-        logger.warn("kindlepin: HTML rendering failed, using plain text", widget)
+        logger.warn("pin: HTML rendering failed, using plain text", widget)
     end
     local text = (pin and pin.text) or _("(empty)")
     self._scroll_wg = ScrollTextWidget:new{

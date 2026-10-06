@@ -109,10 +109,10 @@ return function(test, contains)
                 local metadata = dofile("_meta.lua")
                 assert(metadata.fullname == "Pin")
                 if locale == "ru" then
-                    assert(menu.kindlepin.text == "Закрепления")
+                    assert(menu.pin.text == "Закрепления")
                     contains(metadata.description, "Закрепляет")
                 else
-                    assert(menu.kindlepin.text == "Pins")
+                    assert(menu.pin.text == "Pins")
                     contains(metadata.description, "Pin selected text")
                 end
                 assert(gettext.translation.Pins == "unrelated KOReader translation")

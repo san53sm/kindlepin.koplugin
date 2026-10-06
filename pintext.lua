@@ -76,7 +76,7 @@ function PinText.capture(document, selected)
     local ok, html, css_files = pcall(document.getHTMLFromXPointers,
         document, selected.pos0, selected.pos1, 0x7000, true)
     if not ok or type(html) ~= "string" or html == "" then
-        logger.dbg("kindlepin: HTML extraction unavailable", html)
+        logger.dbg("pin: HTML extraction unavailable", html)
         return nil
     end
     local embedded_css = {}

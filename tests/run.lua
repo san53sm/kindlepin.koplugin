@@ -239,7 +239,7 @@ test("bulk deletion affects only current-book pins and preserves sources and lin
     store:addLink("current.epub", "source.fb2")
     local items = {}
     pluginFor(store, "current.epub"):addToMainMenu(items)
-    items.kindlepin.sub_item_table[3].callback()
+    items.pin.sub_item_table[3].callback()
     support.shown[1].ok_callback()
     assert(store:count("current.epub") == 0 and store:count("source.fb2") == 1)
     assert(#store:getLinkedBooks("current.epub") == 1)
@@ -252,9 +252,9 @@ test("a book with no own pins can display linked pins, including missing source 
     local plugin = pluginFor(store, "current.epub")
     local items = {}
     plugin:addToMainMenu(items)
-    assert(items.kindlepin.sub_item_table[1].enabled_func())
-    contains(items.kindlepin.sub_item_table[1].text_func(), "(1)")
-    assert(not items.kindlepin.sub_item_table[3].enabled_func())
+    assert(items.pin.sub_item_table[1].enabled_func())
+    contains(items.pin.sub_item_table[1].text_func(), "(1)")
+    assert(not items.pin.sub_item_table[3].enabled_func())
     plugin:showPins()
     assert(support.shown[1].pins[1].doc_path == "missing.fb2")
     contains(support.shown[1].pins[1].html, "<emphasis>source</emphasis>")

@@ -1,8 +1,8 @@
 --[[--
-Kindle-style pins for KOReader: save selected text or images and
+Pins for KOReader: save selected text or images and
 browse them without leaving the current page.
 
-@module koplugin.KindlePin
+@module koplugin.Pin
 --]]--
 
 local ConfirmBox = require("ui/widget/confirmbox")
@@ -22,13 +22,13 @@ local lfs = require("libs/libkoreader-lfs")
 local _ = require("pinlocale")
 local T = require("ffi/util").template
 
-local KindlePin = WidgetContainer:extend{
-    name = "kindlepin",
+local Pin = WidgetContainer:extend{
+    name = "pin",
     is_doc_only = true,
 }
 
-function KindlePin.getActive()
-    return KindlePin._active
+function Pin.getActive()
+    return Pin._active
 end
 
 local function cleanText(text)
@@ -75,25 +75,25 @@ local function writeImage(image, path)
     return true
 end
 
-function KindlePin:onDispatcherRegisterActions()
-    Dispatcher:registerAction("kindlepin_show", {
+function Pin:onDispatcherRegisterActions()
+    Dispatcher:registerAction("pin_show", {
         category = "none",
-        event = "KindlePinShow",
+        event = "PinShow",
         title = _("Show pins"),
         reader = true,
     })
-    Dispatcher:registerAction("kindlepin_pin_selection", {
+    Dispatcher:registerAction("pin_selection", {
         category = "none",
-        event = "KindlePinSelection",
+        event = "PinSelection",
         title = _("Pin selection"),
         reader = true,
     })
 end
 
-function KindlePin:init()
-    KindlePin._active = self
+function Pin:init()
+    Pin._active = self
     self.store = PinStore:new()
-    ImageViewerHook.install(KindlePin.getActive)
+    ImageViewerHook.install(Pin.getActive)
     self:onDispatcherRegisterActions()
     if self.ui.menu then
         self.ui.menu:registerToMainMenu(self)
@@ -103,38 +103,38 @@ function KindlePin:init()
     end
 end
 
-function KindlePin:onCloseWidget()
-    if KindlePin._active == self then
-        KindlePin._active = nil
+function Pin:onCloseWidget()
+    if Pin._active == self then
+        Pin._active = nil
     end
     if self.store then
         self.store:flush()
     end
 end
 
-function KindlePin:onCloseDocument()
+function Pin:onCloseDocument()
     if self._pin_dialog then UIManager:close(self._pin_dialog) end
 end
 
-function KindlePin:onFlushSettings()
+function Pin:onFlushSettings()
     if self.store then
         self.store:flush()
     end
 end
 
-function KindlePin:docPath()
+function Pin:docPath()
     return self.ui.document and self.ui.document.file
 end
 
-function KindlePin:listPins()
+function Pin:listPins()
     return self.store:listForViewer(self:docPath())
 end
 
-function KindlePin:bookName(path)
+function Pin:bookName(path)
     return path and path:match("([^/]+)$") or _("Unknown book")
 end
 
-function KindlePin:linkBook(path)
+function Pin:linkBook(path)
     if self.store:addLink(self:docPath(), path) then
         UIManager:show(Notification:new{
             text = T(_("Pins linked: %1"), self:bookName(path)),
@@ -142,7 +142,7 @@ function KindlePin:linkBook(path)
     end
 end
 
-function KindlePin:chooseLinkedBook()
+function Pin:chooseLinkedBook()
     local PathChooser = require("ui/widget/pathchooser")
     local DocumentRegistry = require("document/documentregistry")
     UIManager:show(PathChooser:new{
@@ -163,7 +163,7 @@ function KindlePin:chooseLinkedBook()
     })
 end
 
-function KindlePin:linkCandidates()
+function Pin:linkCandidates()
     local excluded = { [self:docPath()] = true }
     for _, path in ipairs(self.store:getLinkedBooks(self:docPath())) do excluded[path] = true end
     local items = {}
@@ -183,7 +183,7 @@ function KindlePin:linkCandidates()
     return items
 end
 
-function KindlePin:linkedBooksMenu()
+function Pin:linkedBooksMenu()
     local items = {
         { text = _("Links are one-way from this book"), enabled = false },
         {
@@ -214,8 +214,8 @@ function KindlePin:linkedBooksMenu()
     return items
 end
 
-function KindlePin:registerHighlightButton()
-    self.ui.highlight:addToHighlightDialog("12_kindlepin", function(reader_highlight)
+function Pin:registerHighlightButton()
+    self.ui.highlight:addToHighlightDialog("12_pin", function(reader_highlight)
         return {
             text = _("Pin"),
             enabled = true,
@@ -231,7 +231,7 @@ function KindlePin:registerHighlightButton()
     end)
 end
 
-function KindlePin:pageFromHighlight(reader_highlight, selected)
+function Pin:pageFromHighlight(reader_highlight, selected)
     if reader_highlight.hold_pos and reader_highlight.hold_pos.page then
         return reader_highlight.hold_pos.page
     end
@@ -243,7 +243,7 @@ function KindlePin:pageFromHighlight(reader_highlight, selected)
     end
 end
 
-function KindlePin:currentLocation()
+function Pin:currentLocation()
     local loc = {}
     if self.ui.getCurrentPage then
         loc.page = self.ui:getCurrentPage()
@@ -259,7 +259,7 @@ function KindlePin:currentLocation()
     return loc
 end
 
-function KindlePin:pinFromHighlight(reader_highlight)
+function Pin:pinFromHighlight(reader_highlight)
     local selected = reader_highlight.selected_text
     if not selected then
         return
@@ -293,7 +293,7 @@ function KindlePin:pinFromHighlight(reader_highlight)
     })
 end
 
-function KindlePin:pinFromImageViewer(viewer)
+function Pin:pinFromImageViewer(viewer)
     local doc_path = self:docPath()
     if not doc_path then
         return
@@ -303,7 +303,7 @@ function KindlePin:pinFromImageViewer(viewer)
     local image = viewer._scaled_image_func or viewer.image
     local ok, err = writeImage(image, path)
     if not ok then
-        logger.warn("kindlepin: failed to save image", err)
+        logger.warn("pin: failed to save image", err)
         UIManager:show(InfoMessage:new{
             text = _("Failed to save the image."),
         })
@@ -323,7 +323,7 @@ function KindlePin:pinFromImageViewer(viewer)
     })
 end
 
-function KindlePin:deletePin(pin)
+function Pin:deletePin(pin)
     self.store:delete(pin.doc_path or self:docPath(), pin.id)
 end
 
@@ -363,7 +363,7 @@ local function jumpToPin(ui, pin)
     end
 end
 
-function KindlePin:goToPinLocation(pin)
+function Pin:goToPinLocation(pin)
     if not pin then return end
     UIManager:nextTick(function()
         local source_path = pin.doc_path or self:docPath()
@@ -388,7 +388,7 @@ function KindlePin:goToPinLocation(pin)
     end)
 end
 
-function KindlePin:showPins()
+function Pin:showPins()
     if self._show_pins_pending or self._pin_dialog then return end
     local pins = self:listPins()
     if #pins == 0 then
@@ -415,20 +415,20 @@ function KindlePin:showPins()
     end)
 end
 
-function KindlePin:onKindlePinShow()
+function Pin:onPinShow()
     self:showPins()
     return true
 end
 
-function KindlePin:onKindlePinSelection()
+function Pin:onPinSelection()
     if self.ui.highlight then
         self:pinFromHighlight(self.ui.highlight)
         return true
     end
 end
 
-function KindlePin:addToMainMenu(menu_items)
-    menu_items.kindlepin = {
+function Pin:addToMainMenu(menu_items)
+    menu_items.pin = {
         text = _("Pins"),
         sorting_hint = "tools",
         sub_item_table = {
@@ -495,4 +495,4 @@ function KindlePin:addToMainMenu(menu_items)
     }
 end
 
-return KindlePin
+return Pin
